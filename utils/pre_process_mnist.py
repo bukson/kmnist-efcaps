@@ -13,10 +13,10 @@
 # limitations under the License.
 # ==============================================================================
 
-import numpy as np
 import tensorflow as tf
-import os
 import cv2
+
+
 tf2 = tf.compat.v2
 
 # constants
@@ -25,8 +25,8 @@ MNIST_TRAIN_IMAGE_COUNT = 60000
 PARALLEL_INPUT_CALLS = 16
 
 # normalize dataset
-def pre_process(image, label):
-    return (image / 256)[...,None].astype('float32'), tf.keras.utils.to_categorical(label, num_classes=10)
+def pre_process(image, label, num_classes=10):
+    return (image / 256)[...,None].astype('float32'), tf.keras.utils.to_categorical(label, num_classes=num_classes)
 
 def image_shift_rand(image, label):
     image = tf.reshape(image, [MNIST_IMG_SIZE, MNIST_IMG_SIZE])
@@ -110,27 +110,35 @@ def image_squish_random(image, label):
 def generator(image, label):
     return (image, label), (label, image)
 
-def generate_tf_data(X_train, y_train, X_test, y_test, batch_size):
-	dataset_train = tf.data.Dataset.from_tensor_slices((X_train,y_train))
-	dataset_train = dataset_train.shuffle(buffer_size=MNIST_TRAIN_IMAGE_COUNT)
-	dataset_train = dataset_train.map(image_rotate_random, 
-	    num_parallel_calls=PARALLEL_INPUT_CALLS)
-	dataset_train = dataset_train.map(image_shift_rand,
-	    num_parallel_calls=PARALLEL_INPUT_CALLS)
-	dataset_train = dataset_train.map(image_squish_random,
-	    num_parallel_calls=PARALLEL_INPUT_CALLS)
-	dataset_train = dataset_train.map(image_erase_random,
-	   num_parallel_calls=PARALLEL_INPUT_CALLS)
-	dataset_train = dataset_train.map(generator, 
-	   num_parallel_calls=PARALLEL_INPUT_CALLS)
-	dataset_train = dataset_train.batch(batch_size)
-	dataset_train = dataset_train.prefetch(-1)
+def generate_tf_data(X_train, y_train, X_val, y_val, X_test, y_test, batch_size):
+    dataset_train = tf.data.Dataset.from_tensor_slices((X_train,y_train))
+    dataset_train = dataset_train.shuffle(buffer_size=MNIST_TRAIN_IMAGE_COUNT)
+    dataset_train = dataset_train.map(image_rotate_random,
+        num_parallel_calls=PARALLEL_INPUT_CALLS)
+    dataset_train = dataset_train.map(image_shift_rand,
+        num_parallel_calls=PARALLEL_INPUT_CALLS)
+    dataset_train = dataset_train.map(image_squish_random,
+        num_parallel_calls=PARALLEL_INPUT_CALLS)
+    dataset_train = dataset_train.map(image_erase_random,
+       num_parallel_calls=PARALLEL_INPUT_CALLS)
+    dataset_train = dataset_train.map(generator,
+       num_parallel_calls=PARALLEL_INPUT_CALLS)
+    dataset_train = dataset_train.batch(batch_size)
+    dataset_train = dataset_train.prefetch(-1)
 
-	dataset_test = tf.data.Dataset.from_tensor_slices((X_test, y_test))
-	dataset_test = dataset_test.cache()
-	dataset_test = dataset_test.map(generator,
-	    num_parallel_calls=PARALLEL_INPUT_CALLS)
-	dataset_test = dataset_test.batch(batch_size)
-	dataset_test = dataset_test.prefetch(-1)
+
+    dataset_val = tf.data.Dataset.from_tensor_slices((X_val, y_val))
+    dataset_val = dataset_val.cache()
+    dataset_val = dataset_val.map(generator,
+                                    num_parallel_calls=PARALLEL_INPUT_CALLS)
+    dataset_val = dataset_val.batch(batch_size)
+    dataset_val = dataset_val.prefetch(-1)
+
+    dataset_test = tf.data.Dataset.from_tensor_slices((X_test, y_test))
+    dataset_test = dataset_test.cache()
+    dataset_test = dataset_test.map(generator,
+        num_parallel_calls=PARALLEL_INPUT_CALLS)
+    dataset_test = dataset_test.batch(batch_size)
+    dataset_test = dataset_test.prefetch(-1)
     
-	return dataset_train, dataset_test
+    return dataset_train, dataset_val, dataset_test

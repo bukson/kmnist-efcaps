@@ -19,7 +19,8 @@ from utils.layers import PrimaryCaps, FCCaps, Length
 from utils.tools import get_callbacks, marginLoss, multiAccuracy
 from utils.dataset import Dataset
 from utils import pre_process_multimnist
-from models import efficient_capsnet_graph_mnist, efficient_capsnet_graph_smallnorb, efficient_capsnet_graph_multimnist, original_capsnet_graph_mnist
+from models import efficient_capsnet_graph_mnist, efficient_capsnet_graph_smallnorb, efficient_capsnet_graph_multimnist, \
+    original_capsnet_graph_mnist, efficient_capsnet_graph_kmnist, efficient_capsnet_graph_k49
 import os
 import json
 from tqdm.notebook import tqdm
@@ -150,17 +151,23 @@ class EfficientCapsNet(Model):
     def load_graph(self):
         if self.model_name == 'MNIST':
             self.model = efficient_capsnet_graph_mnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
+        if self.model_name == 'KMNIST':
+            self.model = efficient_capsnet_graph_kmnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
+        if self.model_name == 'K49':
+            self.model = efficient_capsnet_graph_k49.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
         elif self.model_name == 'SMALLNORB':
             self.model = efficient_capsnet_graph_smallnorb.build_graph(self.config['SMALLNORB_INPUT_SHAPE'], self.mode, self.verbose)
         elif self.model_name == 'MULTIMNIST':
             self.model = efficient_capsnet_graph_multimnist.build_graph(self.config['MULTIMNIST_INPUT_SHAPE'], self.mode, self.verbose)
+        else:
+            raise ValueError(f"Wrong model name {self.model_name}")
             
     def train(self, dataset=None, initial_epoch=0):
         callbacks = get_callbacks(self.tb_path, self.model_path_new_train, self.config['lr_dec'], self.config['lr'])
 
         if dataset == None:
             dataset = Dataset(self.model_name, self.config_path)
-        dataset_train, dataset_val = dataset.get_tf_data()    
+        dataset_train, dataset_val, _ = dataset.get_tf_data()
 
         if self.model_name == 'MULTIMNIST':
             self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.config['lr']),

@@ -1,9 +1,10 @@
+scikit-learn
 numpy
 pandas
 tensorflow-addons
 opencv-python
 tqdm
-tensorflow
+tensorflow==2.10.0
 matplotlib
 pytest
 jupyter
