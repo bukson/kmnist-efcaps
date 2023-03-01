@@ -15,17 +15,20 @@
 
 import numpy as np
 import tensorflow as tf
-from utils.layers import PrimaryCaps, FCCaps, Length, Mask
+from utils.layers_hinton import PrimaryCaps, DigitCaps, Length, Mask
+import tensorflow_addons as tfa
 
 
-def efficient_capsnet_graph(input_shape):
+def capsnet_graph(input_shape, routing):
     """
-    Efficient-CapsNet graph architecture.
-
+    Original CapsNet graph architecture described in "dynamic routinig between capsules".
+    
     Parameters
     ----------   
     input_shape: list
         network input shape
+    routing: int
+        number of routing iterations
     """
     inputs = tf.keras.Input(input_shape)
 
@@ -41,68 +44,75 @@ def efficient_capsnet_graph(input_shape):
     x = tf.keras.layers.Conv2D(128, 3, activation='relu', padding='valid', kernel_initializer='he_normal',
                                use_bias=True)(x)
     x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(256, 3, 2, activation='relu', padding='valid', kernel_initializer='he_normal',
+    x = tf.keras.layers.Conv2D(256, 3, activation='relu', padding='valid', kernel_initializer='he_normal',
                                use_bias=True)(x)
     x = tf.keras.layers.BatchNormalization()(x)
-    x = PrimaryCaps(256, 8, 32, 8)(x)
+    x = tf.keras.layers.Conv2D(320, 3, 2, activation='relu', padding='valid', kernel_initializer='he_normal',
+                               use_bias=True)(x)
+    x = tf.keras.layers.BatchNormalization()(x)
+    # x = PrimaryCaps(F=320, K=7, N=32, D=10)(x)
+    primary = PrimaryCaps(C=32, L=10, k=7, s=1)(x)
+    digit_caps = DigitCaps(49, 32, routing=routing)(primary)
+    digit_caps_len = Length(name='capsnet_output_len')(digit_caps)
+    pr_shape = primary.shape
+    primary = tf.reshape(primary,(-1,pr_shape[1]*pr_shape[2]*pr_shape[3],pr_shape[-1]))
 
-    character_caps = FCCaps(10, 32)(x)
-    
-    character_caps_length = Length(name='length_capsnet_output')(character_caps)
-
-    return tf.keras.Model(inputs=inputs,outputs=[character_caps, character_caps_length], name='Efficient_CapsNet')
+    return tf.keras.Model(inputs=inputs,outputs=[primary, digit_caps, digit_caps_len] , name='Original_CapsNet')
 
 
 def generator_graph(input_shape):
     """
     Generator graph architecture.
-
+    
     Parameters
     ----------   
     input_shape: list
         network input shape
     """
-    inputs = tf.keras.Input(32*10)
+    inputs = tf.keras.Input(32*49)
     
-    x = tf.keras.layers.Dense(512, activation='relu', kernel_initializer='he_normal')(inputs)
-    x = tf.keras.layers.Dense(1024, activation='relu', kernel_initializer='he_normal')(x)
-    x = tf.keras.layers.Dense(np.prod(input_shape), activation='sigmoid', kernel_initializer='glorot_normal')(x)
+    x = tf.keras.layers.Dense(512, activation='relu')(inputs)
+    x = tf.keras.layers.Dense(1024, activation='relu')(x)
+    x = tf.keras.layers.Dense(np.prod(input_shape), activation='sigmoid')(x)
     x = tf.keras.layers.Reshape(target_shape=input_shape, name='out_generator')(x)
     
     return tf.keras.Model(inputs=inputs, outputs=x, name='Generator')
 
 
-def build_graph(input_shape, mode, verbose):
+def build_graph(input_shape, mode, n_routing, verbose):
     """
-    Efficient-CapsNet graph architecture with reconstruction regularizer. The network can be initialize with different modalities.
-
+    Original CapsNet graph architecture with reconstruction regularizer. The network can be initialize with different modalities.
+    
     Parameters
     ----------   
     input_shape: list
         network input shape
     mode: str
-        working mode ('train', 'test' & 'play')
+        working mode ('train' & 'test')
+    n_routing: int
+        number of routing iterations
     verbose: bool
     """
     inputs = tf.keras.Input(input_shape)
-    y_true = tf.keras.layers.Input(shape=(10,))
-    noise = tf.keras.layers.Input(shape=(10, 32))
-
-    efficient_capsnet = efficient_capsnet_graph(input_shape)
-
-    if verbose:
-        efficient_capsnet.summary()
-        print("\n\n")
+    y_true = tf.keras.Input(shape=(49))
+    noise = tf.keras.layers.Input(shape=(49, 32))
     
-    digit_caps, digit_caps_len = efficient_capsnet(inputs)
+    capsnet = capsnet_graph(input_shape, routing=n_routing)
+    primary, digit_caps, digit_caps_len = capsnet(inputs)
     noised_digitcaps = tf.keras.layers.Add()([digit_caps, noise]) # only if mode is play
     
-    masked_by_y = Mask()([digit_caps, y_true])  
-    masked = Mask()(digit_caps)
+    if verbose:
+        capsnet.summary()
+        print("\n\n")
+    
+
+    masked_by_y = Mask()([digit_caps, y_true])  # The true label is used to mask the output of capsule layer. For training
+    masked = Mask()(digit_caps)  # Mask using the capsule with maximal length. For prediction
     masked_noised_y = Mask()([noised_digitcaps, y_true])
     
-    generator = generator_graph(input_shape)
 
+    generator = generator_graph(input_shape)
+    
     if verbose:
         generator.summary()
         print("\n\n")
@@ -110,12 +120,13 @@ def build_graph(input_shape, mode, verbose):
     x_gen_train = generator(masked_by_y)
     x_gen_eval = generator(masked)
     x_gen_play = generator(masked_noised_y)
+      
 
     if mode == 'train':   
-        return tf.keras.models.Model([inputs, y_true], [digit_caps_len, x_gen_train], name='Efficinet_CapsNet_Generator')
+        return tf.keras.models.Model([inputs, y_true], [digit_caps_len, x_gen_train], name='CapsNet_Generator')
     elif mode == 'test':
-        return tf.keras.models.Model(inputs, [digit_caps_len, x_gen_eval], name='Efficinet_CapsNet_Generator')
+        return tf.keras.models.Model(inputs, [digit_caps_len, x_gen_eval], name='CapsNet_Generator')
     elif mode == 'play':
-        return tf.keras.models.Model([inputs, y_true, noise], [digit_caps_len, x_gen_play], name='Efficinet_CapsNet_Generator')
+        return tf.keras.models.Model([inputs, y_true, noise], [digit_caps_len, x_gen_play], name='CapsNet_Generator')
     else:
         raise RuntimeError('mode not recognized')

@@ -126,13 +126,15 @@ def generate_tf_data(X_train, y_train, X_val, y_val, X_test, y_test, batch_size)
     dataset_train = dataset_train.batch(batch_size)
     dataset_train = dataset_train.prefetch(-1)
 
-
-    dataset_val = tf.data.Dataset.from_tensor_slices((X_val, y_val))
-    dataset_val = dataset_val.cache()
-    dataset_val = dataset_val.map(generator,
-                                    num_parallel_calls=PARALLEL_INPUT_CALLS)
-    dataset_val = dataset_val.batch(batch_size)
-    dataset_val = dataset_val.prefetch(-1)
+    if X_val is not None:
+        dataset_val = tf.data.Dataset.from_tensor_slices((X_val, y_val))
+        dataset_val = dataset_val.cache()
+        dataset_val = dataset_val.map(generator,
+                                        num_parallel_calls=PARALLEL_INPUT_CALLS)
+        dataset_val = dataset_val.batch(batch_size)
+        dataset_val = dataset_val.prefetch(-1)
+    else:
+        dataset_val = None
 
     dataset_test = tf.data.Dataset.from_tensor_slices((X_test, y_test))
     dataset_test = dataset_test.cache()

@@ -44,7 +44,7 @@ class Dataset(object):
         get a tf.data.Dataset object of the loaded dataset. 
     """
 
-    def __init__(self, model_name, config_path='config.json'):
+    def __init__(self, model_name, use_val=True,config_path='config.json'):
         self.model_name = model_name
         self.config_path = config_path
         self.config = None
@@ -56,6 +56,7 @@ class Dataset(object):
         self.y_test = None
         self.class_names = None
         self.X_test_patch = None
+        self.use_val = use_val
         self.load_config()
         self.get_dataset()
 
@@ -78,27 +79,30 @@ class Dataset(object):
         elif self.model_name == 'KMNIST':
             X_train = np.load('datasets/kmnist/kmnist-train-imgs.npz')['arr_0']
             y_train = np.load('datasets/kmnist/kmnist-train-labels.npz')['arr_0']
-            X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.16, stratify=y_train,
-                                                              random_state=0, )
+            if self.use_val:
+                X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train,random_state=0)
             X_test = np.load('datasets/kmnist/kmnist-test-imgs.npz')['arr_0']
             y_test = np.load('datasets/kmnist/kmnist-test-labels.npz')['arr_0']
             # prepare the data
             self.X_train, self.y_train = pre_process_mnist.pre_process(X_train, y_train)
-            self.X_val, self.y_val = pre_process_mnist.pre_process(X_val, y_val)
+            if self.use_val:
+                self.X_val, self.y_val = pre_process_mnist.pre_process(X_val, y_val)
             self.X_test, self.y_test = pre_process_mnist.pre_process(X_test, y_test)
             self.class_names = list(range(10))
             print("[INFO] Dataset loaded!")
         elif self.model_name == 'K49':
             X_train = np.load('datasets/kmnist/k49-train-imgs.npz')['arr_0']
             y_train = np.load('datasets/kmnist/k49-train-labels.npz')['arr_0']
-            X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train,
+            if self.use_val:
+                X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train,
                                                               random_state=0)
             X_test = np.load('datasets/kmnist/k49-test-imgs.npz')['arr_0']
             y_test = np.load('datasets/kmnist/k49-test-labels.npz')['arr_0']
             # prepare the data
             n_classes = 49
             self.X_train, self.y_train = pre_process_mnist.pre_process(X_train, y_train,num_classes=n_classes)
-            self.X_val, self.y_val = pre_process_mnist.pre_process(X_val, y_val, num_classes=n_classes)
+            if self.use_val:
+                self.X_val, self.y_val = pre_process_mnist.pre_process(X_val, y_val, num_classes=n_classes)
             self.X_test, self.y_test = pre_process_mnist.pre_process(X_test, y_test, num_classes=n_classes)
             self.class_names = list(range(49))
             print("[INFO] Dataset loaded!")
@@ -148,4 +152,4 @@ class Dataset(object):
                                                                                   self.config['batch_size'],
                                                                                   self.config["shift_multimnist"])
 
-        return dataset_train, dataset_test
+        return dataset_train, None, dataset_test

@@ -80,7 +80,8 @@ def plotHistory(history):
     """
     Plot the loss and accuracy curves for training and validation 
     """
-    pd.DataFrame(history.history).plot(figsize=(8, 5), y=list(history.history.keys())[0:-1:2])
+    pd.DataFrame(history.history).plot(figsize=(8, 5), y=list(history.history.keys())[0:-1:2],
+                                       xlabel='Number of epochs', ylabel='Loss')
     plt.grid(True)
     plt.show()
         

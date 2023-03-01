@@ -42,16 +42,16 @@ def efficient_capsnet_graph(input_shape, if_solo=False):
     x = tf.keras.layers.BatchNormalization()(x)
     x = tf.keras.layers.Conv2D(320,3,2, activation='relu', padding='valid', kernel_initializer='he_normal', use_bias=True)(x)
     x = tf.keras.layers.BatchNormalization()(x)
-    x = PrimaryCaps(320, 7, 32, 10)(x)
+    x = PrimaryCaps(F=320, K=7, N=32, D=10)(x)
     
-    digit_caps = FCCaps(49,32)(x)
+    charater_caps = FCCaps(49,32)(x)
     
-    digit_caps_len = Length(name='length_capsnet_output')(digit_caps)
+    charater_caps_length = Length(name='length_capsnet_output')(charater_caps)
     if if_solo:
         y_true = tf.keras.layers.Input(shape=(49,))
-        return tf.keras.Model(inputs=[inputs, y_true], outputs=[digit_caps_len], name='Efficient_CapsNet')
+        return tf.keras.Model(inputs=[inputs, y_true], outputs=[charater_caps_length], name='Efficient_CapsNet')
     else:
-        return tf.keras.Model(inputs=inputs,outputs=[digit_caps, digit_caps_len], name='Efficient_CapsNet')
+        return tf.keras.Model(inputs=inputs,outputs=[charater_caps, charater_caps_length], name='Efficient_CapsNet')
 
 
 def generator_graph(input_shape):

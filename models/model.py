@@ -20,7 +20,8 @@ from utils.tools import get_callbacks, marginLoss, multiAccuracy
 from utils.dataset import Dataset
 from utils import pre_process_multimnist
 from models import efficient_capsnet_graph_mnist, efficient_capsnet_graph_smallnorb, efficient_capsnet_graph_multimnist, \
-    original_capsnet_graph_mnist, efficient_capsnet_graph_kmnist, efficient_capsnet_graph_k49
+    original_capsnet_graph_mnist, efficient_capsnet_graph_kmnist, efficient_capsnet_graph_k49, \
+    original_capsnet_graph_k49
 import os
 import json
 from tqdm.notebook import tqdm
@@ -137,7 +138,7 @@ class EfficientCapsNet(Model):
         train the constructed network with a given dataset. All train hyperparameters are defined in the configuration file
 
     """
-    def __init__(self, model_name, mode='test', config_path='config.json', custom_path=None, verbose=True):
+    def __init__(self, model_name, mode='test', config_path='config.json', custom_path=None, use_val=True, verbose=True):
         Model.__init__(self, model_name, mode, config_path, verbose)
         if custom_path != None:
             self.model_path = custom_path
@@ -145,15 +146,16 @@ class EfficientCapsNet(Model):
             self.model_path = os.path.join(self.config['saved_model_dir'], f"efficient_capsnet_{self.model_name}.h5")
         self.model_path_new_train = os.path.join(self.config['saved_model_dir'], f"efficient_capsnet{self.model_name}_new_train.h5")
         self.tb_path = os.path.join(self.config['tb_log_save_dir'], f"efficient_capsnet_{self.model_name}")
+        self.use_val = use_val
         self.load_graph()
     
 
     def load_graph(self):
         if self.model_name == 'MNIST':
-            self.model = efficient_capsnet_graph_mnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
-        if self.model_name == 'KMNIST':
+            self.model = original_capsnet_graph_mnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, 3, self.verbose)
+        elif self.model_name == 'KMNIST':
             self.model = efficient_capsnet_graph_kmnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
-        if self.model_name == 'K49':
+        elif self.model_name == 'K49':
             self.model = efficient_capsnet_graph_k49.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
         elif self.model_name == 'SMALLNORB':
             self.model = efficient_capsnet_graph_smallnorb.build_graph(self.config['SMALLNORB_INPUT_SHAPE'], self.mode, self.verbose)
@@ -184,10 +186,16 @@ class EfficientCapsNet(Model):
 
         print('-'*30 + f'{self.model_name} train' + '-'*30)
 
-        history = self.model.fit(dataset_train,
-          epochs=self.config[f'epochs'], steps_per_epoch=steps,
-          validation_data=(dataset_val), batch_size=self.config['batch_size'], initial_epoch=initial_epoch,
-          callbacks=callbacks)
+        if self.use_val:
+            history = self.model.fit(dataset_train,
+              epochs=self.config[f'epochs'], steps_per_epoch=steps,
+              validation_data=(dataset_val), batch_size=self.config['batch_size'], initial_epoch=initial_epoch,
+              callbacks=callbacks)
+        else:
+            history = self.model.fit(dataset_train,
+                                     epochs=self.config[f'epochs'], steps_per_epoch=steps, batch_size=self.config['batch_size'],
+                                     initial_epoch=initial_epoch,
+                                     callbacks=callbacks)
         
         return history
 
@@ -240,7 +248,7 @@ class CapsNet(Model):
         
         if dataset == None:
             dataset = Dataset(self.model_name, self.config_path)          
-        dataset_train, dataset_val = dataset.get_tf_data()   
+        dataset_train, dataset_val, _ = dataset.get_tf_data()
 
 
         self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.config['lr']),
