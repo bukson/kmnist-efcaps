@@ -15,13 +15,11 @@
 
 import numpy as np
 import tensorflow as tf
-from utils.layers import PrimaryCaps, FCCaps, Length
 from utils.tools import get_callbacks, marginLoss, multiAccuracy
 from utils.dataset import Dataset
 from utils import pre_process_multimnist
-from models import efficient_capsnet_graph_mnist, efficient_capsnet_graph_smallnorb, efficient_capsnet_graph_multimnist, \
-    original_capsnet_graph_mnist, efficient_capsnet_graph_kmnist, efficient_capsnet_graph_k49, \
-    original_capsnet_graph_k49
+from models import efficient_capsnet_graph_smallnorb, efficient_capsnet_graph_multimnist, \
+    original_capsnet_graph_mnist, efficient_capsnet_graph_kmnist, efficient_capsnet_graph_k49
 import os
 import json
 from tqdm.notebook import tqdm

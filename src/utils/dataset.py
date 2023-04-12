@@ -100,7 +100,7 @@ class Dataset(object):
             y_test = np.load('datasets/kmnist/k49-test-labels.npz')['arr_0']
             # prepare the data
             n_classes = 49
-            self.X_train, self.y_train = pre_process_mnist.pre_process(X_train, y_train,num_classes=n_classes)
+            self.X_train, self.y_train = pre_process_mnist.pre_process(X_train, y_train, num_classes=n_classes)
             if self.use_val:
                 self.X_val, self.y_val = pre_process_mnist.pre_process(X_val, y_val, num_classes=n_classes)
             self.X_test, self.y_test = pre_process_mnist.pre_process(X_test, y_test, num_classes=n_classes)
@@ -139,8 +139,8 @@ class Dataset(object):
         if self.model_name == 'MNIST' or self.model_name == 'KMNIST' or self.model_name == 'K49':
             dataset_train, dataset_val, dataset_test = pre_process_mnist.generate_tf_data(self.X_train, self.y_train,
                                                                                           self.X_val, self.y_val,
-                                                                                 self.X_test_patch, self.y_test,
-                                                                                 self.config['batch_size'])
+                                                                                          self.X_test_patch, self.y_test,
+                                                                                          self.config['batch_size'])
             return dataset_train, dataset_val, dataset_test
         elif self.model_name == 'SMALLNORB':
             dataset_train, dataset_test = pre_process_smallnorb.generate_tf_data(self.X_train, self.y_train,
