@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import os
+from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
@@ -68,6 +70,7 @@ class Dataset(object):
             self.config = json.load(json_data_file)
 
     def get_dataset(self) -> None:
+        datasets_path = Path(os.path.dirname(os.path.realpath(__file__))) / '..' / '..' / 'datasets'
         if self.model_name == 'MNIST':
             (self.X_train, self.y_train), (self.X_test, self.y_test) = tf.keras.datasets.mnist.load_data(
                 path=self.config['mnist_path'])
@@ -77,12 +80,12 @@ class Dataset(object):
             self.class_names = list(range(10))
             print("[INFO] Dataset loaded!")
         elif self.model_name == 'KMNIST':
-            X_train = np.load('datasets/kmnist/kmnist-train-imgs.npz')['arr_0']
-            y_train = np.load('datasets/kmnist/kmnist-train-labels.npz')['arr_0']
+            X_train = np.load(f'{datasets_path}/kmnist/kmnist-train-imgs.npz')['arr_0']
+            y_train = np.load(f'{datasets_path}/kmnist/kmnist-train-labels.npz')['arr_0']
             if self.use_val:
                 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train,random_state=0)
-            X_test = np.load('datasets/kmnist/kmnist-test-imgs.npz')['arr_0']
-            y_test = np.load('datasets/kmnist/kmnist-test-labels.npz')['arr_0']
+            X_test = np.load(f'{datasets_path}/kmnist/kmnist-test-imgs.npz')['arr_0']
+            y_test = np.load(f'{datasets_path}/kmnist/kmnist-test-labels.npz')['arr_0']
             # prepare the data
             self.X_train, self.y_train = pre_process_mnist.pre_process(X_train, y_train)
             if self.use_val:
@@ -91,13 +94,13 @@ class Dataset(object):
             self.class_names = list(range(10))
             print("[INFO] Dataset loaded!")
         elif self.model_name == 'K49':
-            X_train = np.load('datasets/kmnist/k49-train-imgs.npz')['arr_0']
-            y_train = np.load('datasets/kmnist/k49-train-labels.npz')['arr_0']
+            X_train = np.load(f'{datasets_path}/kmnist/k49-train-imgs.npz')['arr_0']
+            y_train = np.load(f'{datasets_path}/kmnist/k49-train-labels.npz')['arr_0']
             if self.use_val:
                 X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, stratify=y_train,
                                                               random_state=0)
-            X_test = np.load('datasets/kmnist/k49-test-imgs.npz')['arr_0']
-            y_test = np.load('datasets/kmnist/k49-test-labels.npz')['arr_0']
+            X_test = np.load(f'{datasets_path}/kmnist/k49-test-imgs.npz')['arr_0']
+            y_test = np.load(f'{datasets_path}/kmnist/k49-test-labels.npz')['arr_0']
             # prepare the data
             n_classes = 49
             self.X_train, self.y_train = pre_process_mnist.pre_process(X_train, y_train, num_classes=n_classes)

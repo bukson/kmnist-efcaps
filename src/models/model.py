@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
@@ -37,7 +38,7 @@ class Model(object):
         name of the model (Ex. 'MNIST')
     mode: str
         model modality (Ex. 'test')
-    config_path: str
+    config_name: str
         path configuration file
     verbose: bool
     
@@ -54,21 +55,19 @@ class Model(object):
     save_graph_weights():
         save model weights
     """
-    def __init__(self, model_name, mode='test', config_path='config.json', verbose=True):
+    def __init__(self, model_name, mode='test', config_name='config.json', verbose=True):
         self.model_name = model_name
         self.model = None
         self.mode = mode
-        self.config_path = config_path
+        self.config_name = config_name
         self.config = None
         self.verbose = verbose
         self.load_config()
 
 
     def load_config(self):
-        """
-        Load config file
-        """
-        with open(self.config_path) as json_data_file:
+        config_path = Path(os.path.dirname(os.path.realpath(__file__))) / '..'
+        with open(f'{config_path}/{self.config_name}') as json_data_file:
             self.config = json.load(json_data_file)
     
 
@@ -122,7 +121,7 @@ class EfficientCapsNet(Model):
         name of the model (Ex. 'MNIST')
     mode: str
         model modality (Ex. 'test')
-    config_path: str
+    config_name: str
         path configuration file
     custom_path: str
         custom weights path
@@ -136,14 +135,15 @@ class EfficientCapsNet(Model):
         train the constructed network with a given dataset. All train hyperparameters are defined in the configuration file
 
     """
-    def __init__(self, model_name, mode='test', config_path='config.json', custom_path=None, use_val=True, verbose=True):
-        Model.__init__(self, model_name, mode, config_path, verbose)
+    def __init__(self, model_name, mode='test', config_name='config.json', custom_path=None, use_val=True, verbose=True):
+        Model.__init__(self, model_name, mode, config_name, verbose)
+        root_path = Path(os.path.dirname(os.path.realpath(__file__))) / '..' / '..'
         if custom_path != None:
-            self.model_path = custom_path
+            self.model_path = root_path / custom_path
         else:
-            self.model_path = os.path.join(self.config['saved_model_dir'], f"efficient_capsnet_{self.model_name}.h5")
-        self.model_path_new_train = os.path.join(self.config['saved_model_dir'], f"efficient_capsnet{self.model_name}_new_train.h5")
-        self.tb_path = os.path.join(self.config['tb_log_save_dir'], f"efficient_capsnet_{self.model_name}")
+            self.model_path = os.path.join(root_path, self.config['saved_model_dir'], f"efficient_capsnet_{self.model_name}.h5")
+        self.model_path_new_train = os.path.join(root_path, self.config['saved_model_dir'], f"efficient_capsnet{self.model_name}_new_train.h5")
+        self.tb_path = os.path.join(root_path, self.config['tb_log_save_dir'], f"efficient_capsnet_{self.model_name}")
         self.use_val = use_val
         self.load_graph()
     
@@ -166,7 +166,7 @@ class EfficientCapsNet(Model):
         callbacks = get_callbacks(self.tb_path, self.model_path_new_train, self.config['lr_dec'], self.config['lr'])
 
         if dataset == None:
-            dataset = Dataset(self.model_name, self.config_path)
+            dataset = Dataset(self.model_name, self.config_name)
         dataset_train, dataset_val, _ = dataset.get_tf_data()
 
         if self.model_name == 'MULTIMNIST':
@@ -212,7 +212,7 @@ class CapsNet(Model):
         name of the model (only MNIST provided)
     mode: str
         model modality (Ex. 'test')
-    config_path: str
+    config_name: str
         path configuration file
     verbose: bool
     n_routing: int
@@ -225,8 +225,8 @@ class CapsNet(Model):
     train():
         train the constructed network with a given dataset. All train hyperparameters are defined in the configuration file
     """
-    def __init__(self, model_name, mode='test', config_path='config.json', custom_path=None, verbose=True, n_routing=3):
-        Model.__init__(self, model_name, mode, config_path, verbose)   
+    def __init__(self, model_name, mode='test', config_name='config.json', custom_path=None, verbose=True, n_routing=3):
+        Model.__init__(self, model_name, mode, config_name, verbose)
         self.n_routing = n_routing
         self.load_config()
         if custom_path != None:
@@ -245,7 +245,7 @@ class CapsNet(Model):
         callbacks = get_callbacks(self.tb_path, self.model_path_new_train, self.config['lr_dec'], self.config['lr'])
         
         if dataset == None:
-            dataset = Dataset(self.model_name, self.config_path)          
+            dataset = Dataset(self.model_name, self.config_name)
         dataset_train, dataset_val, _ = dataset.get_tf_data()
 
 
