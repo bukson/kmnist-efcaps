@@ -11,7 +11,12 @@ for categorizing Japaneese characters [Kuzushiji-MNIST dataset](https://github.c
    ```bash
    git clone https://github.com/bukson/kmnist-efcaps
    ```
-2. Install the required packages
+2. Make sure you have installed proper version of cuda on your system
+   ```bash
+   cuda-11.8
+   cudnn-8.6.0.
+   ```
+3. Install the required packages
    ```bash
    pip3 install -r requirements.txt
    ```
