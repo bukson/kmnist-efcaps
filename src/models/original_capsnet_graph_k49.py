@@ -32,30 +32,12 @@ def capsnet_graph(input_shape, routing):
     """
     inputs = tf.keras.Input(input_shape)
 
-    x = tf.keras.layers.Conv2D(32, 5, activation="relu", padding='valid', kernel_initializer='he_normal',
-                               use_bias=True)(inputs)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(64, 3, activation='relu', padding='valid', kernel_initializer='he_normal',
-                               use_bias=True)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(96, 3, activation='relu', padding='valid', kernel_initializer='he_normal',
-                               use_bias=True)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(128, 3, activation='relu', padding='valid', kernel_initializer='he_normal',
-                               use_bias=True)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(256, 3, activation='relu', padding='valid', kernel_initializer='he_normal',
-                               use_bias=True)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    x = tf.keras.layers.Conv2D(320, 3, 2, activation='relu', padding='valid', kernel_initializer='he_normal',
-                               use_bias=True)(x)
-    x = tf.keras.layers.BatchNormalization()(x)
-    # x = PrimaryCaps(F=320, K=7, N=32, D=10)(x)
-    primary = PrimaryCaps(C=32, L=10, k=7, s=1)(x)
-    digit_caps = DigitCaps(49, 32, routing=routing)(primary)
+    x = tf.keras.layers.Conv2D(256, 9, activation="relu")(inputs)
+    primary = PrimaryCaps(C=32, L=8, k=9, s=2)(x)
+    digit_caps = DigitCaps(49, 16, routing=routing)(primary)
     digit_caps_len = Length(name='capsnet_output_len')(digit_caps)
     pr_shape = primary.shape
-    primary = tf.reshape(primary,(-1,pr_shape[1]*pr_shape[2]*pr_shape[3],pr_shape[-1]))
+    primary = tf.reshape(primary, (-1, pr_shape[1] * pr_shape[2] * pr_shape[3], pr_shape[-1]))
 
     return tf.keras.Model(inputs=inputs,outputs=[primary, digit_caps, digit_caps_len] , name='Original_CapsNet')
 
@@ -69,7 +51,7 @@ def generator_graph(input_shape):
     input_shape: list
         network input shape
     """
-    inputs = tf.keras.Input(32*49)
+    inputs = tf.keras.Input(16*49)
     
     x = tf.keras.layers.Dense(512, activation='relu')(inputs)
     x = tf.keras.layers.Dense(1024, activation='relu')(x)
@@ -95,7 +77,7 @@ def build_graph(input_shape, mode, n_routing, verbose):
     """
     inputs = tf.keras.Input(input_shape)
     y_true = tf.keras.Input(shape=(49))
-    noise = tf.keras.layers.Input(shape=(49, 32))
+    noise = tf.keras.layers.Input(shape=(49, 16))
     
     capsnet = capsnet_graph(input_shape, routing=n_routing)
     primary, digit_caps, digit_caps_len = capsnet(inputs)

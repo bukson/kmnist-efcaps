@@ -20,7 +20,8 @@ from utils.tools import get_callbacks, marginLoss, multiAccuracy
 from utils.dataset import Dataset
 from utils import pre_process_multimnist
 from models import efficient_capsnet_graph_smallnorb, efficient_capsnet_graph_multimnist, \
-    original_capsnet_graph_mnist, efficient_capsnet_graph_kmnist, efficient_capsnet_graph_k49
+    original_capsnet_graph_mnist, efficient_capsnet_graph_kmnist, efficient_capsnet_graph_k49, \
+    original_capsnet_graph_k49
 import os
 import json
 from tqdm.notebook import tqdm
@@ -153,8 +154,12 @@ class EfficientCapsNet(Model):
             self.model = original_capsnet_graph_mnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, 3, self.verbose)
         elif self.model_name == 'KMNIST':
             self.model = efficient_capsnet_graph_kmnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
+        elif self.model_name == 'KMNIST-ORIGINAL':
+            self.model = original_capsnet_graph_mnist.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, 3, self.verbose)
         elif self.model_name == 'K49':
             self.model = efficient_capsnet_graph_k49.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, self.verbose)
+        elif self.model_name == 'K49-ORIGINAL':
+            self.model = original_capsnet_graph_k49.build_graph(self.config['MNIST_INPUT_SHAPE'], self.mode, 3, self.verbose)
         elif self.model_name == 'SMALLNORB':
             self.model = efficient_capsnet_graph_smallnorb.build_graph(self.config['SMALLNORB_INPUT_SHAPE'], self.mode, self.verbose)
         elif self.model_name == 'MULTIMNIST':
@@ -175,6 +180,12 @@ class EfficientCapsNet(Model):
               loss_weights=[1., self.config['lmd_gen']/2,self.config['lmd_gen']/2],
               metrics={'Efficient_CapsNet': multiAccuracy})
             steps = 10*int(dataset.y_train.shape[0] / self.config['batch_size'])
+        elif self.model_name == 'KMNIST-ORIGINAL' or self.model_name == 'K49-ORIGINAL':
+            self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.config['lr']),
+                               loss=[marginLoss, 'mse'],
+                               loss_weights=[1., self.config['lmd_gen']],
+                               metrics={'Original_CapsNet': 'accuracy'})
+            steps = None
         else:
             self.model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=self.config['lr']),
               loss=[marginLoss, 'mse'],
